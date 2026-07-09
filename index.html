@@ -1,9 +1,991 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-   
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamGen | NEB Question Generator Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- INTEGRATED THEME CONFIGURATION FROM TRILOGY --- */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --base-bg: #1C0D0D;                             
+            --interface-glass: rgba(43, 20, 20, 0.65);      
+            --border-glass: rgba(255, 255, 255, 0.05);
+            --accent: #A62B2B;                              
+            --accent-glow: rgba(166, 43, 43, 0.2);
+            --purple: #F2A21F;                              
+            --purple-glow: rgba(242, 162, 31, 0.15);
+            --text-primary: #FFF5E6;                        
+            --text-muted: #A6968F;                          
+            --card-hover-bg: rgba(54, 25, 25, 0.8);
+            --spring-transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); 
+        }
+
+        [data-theme="light"] {
+            --base-bg: #FFF5E6;                             
+            --interface-glass: rgba(255, 254, 250, 0.96);    
+            --border-glass: rgba(166, 43, 43, 0.14);        
+            --accent: #B21E1E;                              
+            --accent-glow: rgba(178, 30, 30, 0.1);
+            --purple: #C27800;                              
+            --purple-glow: rgba(194, 120, 0, 0.15);
+            --text-primary: #1F0A0A;                        
+            --text-muted: #594740;                          
+            --card-hover-bg: rgba(253, 246, 232, 0.98);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--base-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        border-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .main-title, .section-heading, .brand-logo, .glass-card h3, .question-card h4 {
+            font-family: 'Syne', "Impact", "Arial Black", sans-serif;
+        }
+
+        /* Ambient Glow Engine */
+        .ambient-glow-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .fluid-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(130px);
+            opacity: 0.18;
+            mix-blend-mode: screen;
+            will-change: transform;
+            animation: floatingOrbs 12s ease-in-out infinite alternate;
+        }
+
+        [data-theme="light"] .fluid-orb {
+            opacity: 0.06;
+            mix-blend-mode: multiply;
+        }
+
+        .orb-primary {
+            width: 45vw;
+            height: 45vw;
+            background: var(--purple);
+            top: -10%;
+            left: -10%;
+        }
+
+        .orb-secondary {
+            width: 40vw;
+            height: 40vw;
+            background: var(--accent);
+            bottom: -5%;
+            right: -5%;
+            animation-delay: -4s;
+        }
+
+        @keyframes floatingOrbs {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(40px) scale(1.1); }
+        }
+
+        /* Scroll Tracker Line */
+        #scroll-progress-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            width: 0%;
+            z-index: 10000;
+            will-change: width;
+            transition: width 0.1s linear;
+        }
+
+        /* Navbar Layout */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 999;
+            background: var(--interface-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glass);
+            transition: background-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .nav-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 1.25rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            font-weight: 800;
+            font-size: 1.45rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            transition: var(--spring-transition);
+        }
+
+        .brand-logo span {
+            color: var(--accent);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .theme-toggle-btn {
+            background: var(--border-glass);
+            border: 1px solid var(--border-glass);
+            padding: 0.6rem 1.2rem;
+            border-radius: 100px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--spring-transition);
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--text-primary);
+            color: var(--base-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Master Container */
+        .master-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 9rem 2rem 6rem;
+        }
+
+        .hero-showcase {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--purple-glow);
+            border: 1px solid var(--border-glass);
+            padding: 0.5rem 1.2rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            transition: var(--spring-transition);
+        }
+
+        .live-pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .main-title {
+            font-weight: 800;
+            font-size: 4rem;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(110deg, var(--accent) 30%, var(--purple) 50%, var(--accent) 70%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShimmerEngine 4.5s linear infinite;
+        }
+
+        @keyframes textShimmerEngine {
+            to { background-position: 200% center; }
+        }
+
+        .main-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphism Control Panel Card */
+        .glass-card {
+            background: var(--interface-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.03), 0 4px 24px rgba(0, 0, 0, 0.2);
+            padding: 3rem;
+            transition: var(--spring-transition);
+        }
+
+        .card-glow-tracker {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(800px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255,255,255,0.04), transparent 40%);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        [data-theme="light"] .card-glow-tracker {
+            background: radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(166,43,43,0.03), transparent 40%);
+        }
+
+        /* Grid Selection Field Modules */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .custom-select {
+            background: rgba(28, 13, 13, 0.4);
+            border: 1px solid var(--border-glass);
+            padding: 1rem 1.2rem;
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+            transition: var(--spring-transition);
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23A6968F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+            background-repeat: no-repeat;
+            background-position: right 1.2rem center;
+            background-size: 1.2rem;
+        }
+
+        [data-theme="light"] .custom-select {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .custom-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Action Launch Engine */
+        .generate-btn {
+            width: 100%;
+            background: var(--accent);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.1rem;
+            border-radius: 100px;
+            color: #FFFFFF;
+            font-family: 'Syne', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 15px var(--accent-glow);
+            transition: var(--spring-transition);
+            position: relative;
+            z-index: 2;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 24px rgba(166, 43, 43, 0.4);
+            background: var(--purple);
+        }
+
+        /* Dynamic Output Window */
+        .output-container {
+            margin-top: 3.5rem;
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .output-container.reveal {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .output-header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .output-header h3 {
+            font-size: 1.6rem;
+            color: var(--text-primary);
+        }
+
+        .question-deck {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .question-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid var(--accent);
+            border-top: 1px solid var(--border-glass);
+            border-right: 1px solid var(--border-glass);
+            border-bottom: 1px solid var(--border-glass);
+            border-radius: 0 16px 16px 0;
+            padding: 1.8rem;
+            transition: var(--spring-transition);
+            position: relative;
+        }
+
+        [data-theme="light"] .question-card {
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        .question-card:hover {
+            transform: translateX(6px);
+            background: var(--card-hover-bg);
+            border-left-color: var(--purple);
+        }
+
+        .question-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--purple);
+            margin-bottom: 0.6rem;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Footer Profile Blueprint */
+        .premium-footer {
+            border-top: 1px solid var(--border-glass);
+            padding: 3rem 2rem;
+            margin-top: 8rem;
+        }
+
+        .footer-inner-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copyright-text a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 700;
+            transition: color 0.3s ease;
+        }
+
+        .copyright-text a:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .control-grid { grid-template-columns: 1fr; gap: 1.2rem; }
+            .main-title { font-size: 2.8rem; }
+            .glass-card { padding: 2rem; }
+            .footer-inner-wrapper { flex-direction: column; gap: 1rem; text-align: center; }
+        }
+    </style>
 </head>
 <body>
-<h3>You are too late Man !</h3>
+
+    <div id="scroll-progress-line"></div>
+
+    <div class="ambient-glow-wrapper">
+        <div class="fluid-orb orb-primary"></div>
+        <div class="fluid-orb orb-secondary"></div>
+    </div>
+
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="#" class="brand-logo">EXAM<span>GEN</span></a>
+            <div class="nav-actions">
+                <button class="theme-toggle-btn" id="theme-switcher">
+                    <i class="fa-solid fa-moon"></i> <span id="theme-text">Dark Mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="master-container">
+        
+        <section class="hero-showcase">
+            <div class="status-pill">
+                <span class="live-pulse"></span> NEB Paper Generator ⚡
+            </div>
+            <h1 class="main-title">EXAM <span class="gradient-text">GEN</span></h1>
+            <p class="main-subtitle">Instantly sort and generate localized past question templates based on real NEB standard parameters.</p>
+        </section>
+
+        <section class="glass-card element-interact-node">
+            <div class="card-glow-tracker"></div>
+            
+            <div class="control-grid">
+                <div class="input-group">
+                    <label><i class="fa-solid fa-graduation-cap"></i> Select Target Grade</label>
+                    <select id="grade-select" class="custom-select">
+                        <option value="11">Grade 11 (XI)</option>
+                        <option value="12" selected>Grade 12 (XII)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label><i class="fa-solid fa-atom"></i> Select Stream Subject</label>
+                    <select id="subject-select" class="custom-select">
+                        <option value="physics">Physics</option>
+                        <option value="chemistry">Chemistry</option>
+                        <option value="biology">Biology</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="generate-btn" id="trigger-engine-btn">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Compile Question Bank
+            </button>
+        </section>
+
+        <section class="output-container" id="output-stage">
+            <div class="output-header">
+                <h3 id="output-title">Generated Queries</h3>
+                <span class="status-pill" style="margin:0;"><i class="fa-solid fa-file-pdf"></i> Exam Ready</span>
+            </div>
+            <div class="question-deck" id="question-render-deck">
+                </div>
+        </section>
+
+    </main>
+
+    <footer class="premium-footer">
+        <div class="footer-inner-wrapper">
+            <p class="copyright-text">&copy; 2026 EXAMGEN. Engineered by <a href="https://www.instagram.com/sulavt47_/" target="_blank">sulavt47_</a> Layout Framework.</p>
+            <p class="sub-credit" style="color: var(--text-muted); font-size: 0.85rem;">NEB Board Architecture Simulator</p>
+        </div>
+    </footer>
+
+    <script>
+        /* --- QUESTION DATABASE PLATFORM MODULE (NEB ARCHIVE - 300 UNIQUE ENTRIES) --- */
+        const NEB_QUESTION_BANK = {
+            "11": {
+                "physics": Array.from({ length: 50 }, (_, i) => ({
+                    meta: i % 3 === 0 ? "Long Question | 8 Marks" : i % 3 === 1 ? "Short Question | 4 Marks" : "Conceptual | 2 Marks",
+                    text: [
+                        "State the principle of conservation of linear momentum. Derive the expression for the loss of kinetic energy during a perfectly inelastic collision.",
+                        "Define surface tension. Derive a relation between surface tension and surface energy.",
+                        "State and prove Newton's law of cooling. Under what condition is it valid?",
+                        "Why do regular broad tyres provide better traction control on loose soil metrics compared to narrow variations?",
+                        "State Hooke's Law. Obtain an expression for the work done in stretching a metallic wire under strain.",
+                        "What is terminal velocity? Derive an expression for the terminal velocity of a small spherical ball falling through a viscous fluid.",
+                        "State and prove Bernoulli's principle for a fluid stream exhibiting streamline flow conditions.",
+                        "Define the coefficient of viscosity. Explain how temperature alters the viscous metrics of gases and liquids.",
+                        "Derive an expression for the time period of a simple pendulum performing simple harmonic motion.",
+                        "Distinguish clearly between progressive waves and stationary waves with mathematical representations.",
+                        "State the law of conservation of energy. Show that the mechanical energy of a freely falling body remains conserved.",
+                        "Define angular velocity and angular acceleration. Derive a relation between linear velocity and angular velocity.",
+                        "What is centripetal acceleration? Derive an expression for the acceleration vector targeting the center of rotation.",
+                        "Define torque and angular momentum. Establish a mathematical relation between torque and angular momentum.",
+                        "State the parallel axis theorem and perpendicular axis theorem regarding the moment of inertia.",
+                        "What is escape velocity? Derive an expression for the escape velocity of an atmospheric payload departing Earth.",
+                        "Define gravitational potential energy. Derive its expression from infinity to a point inside a local gravitational field.",
+                        "How does the acceleration due to gravity vary with altitude and depth metrics away from sea level?",
+                        "Define Young's modulus, Bulk modulus, and Rigidity modulus. State the relation linking these values.",
+                        "Explain the molecular theory of surface tension. Why do drops of liquid inherently assume spherical geometries?",
+                        "What is capillarity? Derive Ascent formula for the rise of a clean liquid inside a narrow capillary tube structure.",
+                        "Explain the different modes of heat transfer. Distinguish between thermal conduction and thermal convection profiles.",
+                        "State and explain the first law of thermodynamics. Discuss its physical limitations.",
+                        "What is an isothermal process? Derive an expression for the total work done during an isothermal gas expansion.",
+                        "What is an adiabatic process? Derive the characteristic equation for an adiabatic transformation matrix.",
+                        "Describe the construction and dynamic working principles of a Carnot engine with a PV indicator tracking plot.",
+                        "State the second law of thermodynamics according to both Kelvin-Planck and Clausius parameter configurations.",
+                        "Define mean free path of a gas molecule. How does it depend on molecular diameter and density variables?",
+                        "State the principle of equipartition of energy. Calculate the specific heat capacities for monotonic gas structures.",
+                        "Explain Doppler effect in sound waves. Derive an expression for the apparent frequency when the source approaches a stationary observer.",
+                        "Define longitudinal waves and transverse waves. Provide structural real-world examples for both categories.",
+                        "Explain Laplace's correction for the velocity of sound in a gaseous medium. Why was Newton's formula incorrect?",
+                        "What are beats? Derive an analytical expression for the beat frequency produced by overlapping acoustic waves.",
+                        "Explain the formation of stationary waves inside an open organ pipe. Sketch the fundamental and first overtone profiles.",
+                        "Explain the structural formation of standing waves inside a closed organ pipe. Calculate the frequency ratio sequences.",
+                        "State the laws of transverse vibrations of a stretched string. How does the fundamental frequency scale with tension?",
+                        "Define power and efficiency parameters. Can a real mechanical device ever achieve absolute unity efficiency?",
+                        "Explain the physics behind banking of roads. Derive the maximum safe velocity limit for a car avoiding skidding risks.",
+                        "What is radius of gyration? Calculate the radius of gyration of a uniform thin rod about an axis passing through its center.",
+                        "Define impulse. Show that impulse equals the overall transformation observed in the linear momentum index.",
+                        "Distinguish between static friction, limiting friction, and kinetic friction profiles. Sketch the friction vs force curve.",
+                        "Why is pulling a lawn mower analytically easier than pushing it across a standard flat terrain matrix?",
+                        "Explain the working of a structural physical balance. What are the key parameters governing its core sensitivity?",
+                        "What are errors of measurement? Distinguish between systematic errors and random error distributions.",
+                        "State the rules for counting significant figures. Round off the value 4.3756 to three significant figures.",
+                        "Define scalar product and vector product of two vectors. Give one physical application for each instance.",
+                        "State and explain the triangle law and parallelogram law of vector addition equations.",
+                        "What is a projectile? Derive the path equation, time of flight, and maximum range equations for horizontal launches.",
+                        "Show that there are two distinct angles of projection for which the horizontal range of a projectile remains identical.",
+                        "Explain the variance between conservative and non-conservative forces using work-loop evaluations."
+                    ][i],
+                })),
+                "chemistry": Array.from({ length: 50 }, (_, i) => ({
+                    meta: i % 3 === 0 ? "Long Question | 8 Marks" : i % 3 === 1 ? "Short Question | 4 Marks" : "Conceptual | 2 Marks",
+                    text: [
+                        "State Dalton's Law of partial pressure. Write its practical application and derive its mathematical expression.",
+                        "Define orbital. Differentiate between Pauli's Exclusion Principle and Hund's Rule of Maximum Multiplicity.",
+                        "Why does the modern Periodic Table place Argon before Potassium despite its heavier atomic weight index?",
+                        "State and explain Boyle's law and Charles's law using the fundamental postulates of the kinetic molecular theory.",
+                        "Derive the ideal gas equation PV=nRT and calculate the numerical value of the universal gas constant R in SI units.",
+                        "State Graham's law of diffusion. How is it applied to determine the molecular weight of an unknown gas system?",
+                        "State the law of mass action. Derive the relationship between equilibrium constants Kp and Kc.",
+                        "Explain Le Chatelier's principle. Apply it to optimize the industrial production of Ammonia via the Haber process.",
+                        "Define Arrhenius, Bronsted-Lowry, and Lewis concepts of acids and bases with illustrative examples.",
+                        "What is pH? Calculate the pH of a 0.001 M solution of Sodium Hydroxide assuming complete ionization.",
+                        "Explain the common ion effect. How is this principle utilized in qualitative salt analysis procedures?",
+                        "Define solubility product. Explain its practical application in the precipitation of Group II metal sulphides.",
+                        "State the laws of stoichiometry. Explain the law of reciprocal proportions with an illustrative compound matrix.",
+                        "What is a limiting reactant? Explain the systematic method to isolate it within a multi-component reaction.",
+                        "Define empirical formula and molecular formula. How are they interconnected via molecular mass properties?",
+                        "State Bohr's atomic model. Derive expressions for the radius of the nth orbit for a hydrogen atom.",
+                        "Explain the origin of different spectral lines in the Hydrogen spectrum using energy level transitions.",
+                        "State Heisenberg's uncertainty principle. Why is its physical significance restricted to microscopic particles?",
+                        "Define quantum numbers. Explain the specific structural significance of the magnetic quantum number value.",
+                        "Define ionization energy, electron affinity, and electronegativity. Explain their periodic variations across groups.",
+                        "What is a chemical bond? Explain the formation of electrovalent bonds using Lewis dot structures.",
+                        "Explain the geometry and hybridization states present within Ammonia and Water molecules using VSEPR theory.",
+                        "Define hydrogen bonding. Explain why water exhibits a high boiling point compared to hydrogen sulphide gas.",
+                        "What is a redox reaction? Balance the given ionic reaction equation using the oxidation number tracking method.",
+                        "Define oxidation and reduction based on electronic concepts. Identify the oxidant inside a displacement loop.",
+                        "Describe the metallurgical extraction of Sodium by Down's process with essential cell reactions.",
+                        "Explain the preparation, properties, and structural uses of washing soda via the Solvay manufacturing path.",
+                        "Describe the chemistry of quicklime. Why does it undergo a violent reaction when exposed directly to water?",
+                        "Discuss the anomalous behavior of Lithium compared to other elements belonging to the alkali metal family.",
+                        "Explain the extraction of localized plaster of Paris from gypsum and elaborate on its setting mechanism.",
+                        "What is heavy water? How is it prepared and what are its critical applications within modern atomic reactors?",
+                        "Define allotropy. Compare the structural properties of diamond and graphite in terms of carbon hybridization.",
+                        "Explain the laboratory preparation method for Carbon Monoxide gas along with its physiological toxicity mechanism.",
+                        "Describe the structural composition and environmental hazards associated with acid rain configurations.",
+                        "What is global warming? Explain the greenhouse mechanism driven by atmospheric gas metrics.",
+                        "Define functional groups. Identify the functional networks inside structural isomer pairs.",
+                        "Explain the IUPAC nomenclature rules for branched alkanes containing multiple structural substituents.",
+                        "What is isomerism? Distinguish between chain isomerism and position isomerism using butane and pentane variations.",
+                        "Explain the laboratory preparation profile for Methane gas with a clean setup diagram.",
+                        "Discuss the substitution reactions observed in Alkanes, focusing specifically on the free radical chlorination path.",
+                        "Explain Markovnikov's rule regarding the addition of asymmetric reagents to unsymmetrical alkenes.",
+                        "What is polymerisation? Explain the synthesis of polythene and polyvinyl chloride polymers.",
+                        "Describe the laboratory preparation process for Acetylene gas along with its tracking identification tests.",
+                        "Explain the acidic nature of terminal alkynes with corresponding chemical reaction equations.",
+                        "What is inductive effect? Distinguish clearly between +I and -I effects using molecular chain structures.",
+                        "Explain electromeric effect. How does it differ fundamentally from permanent inductive resonance systems?",
+                        "Define resonance structure. Explain the stability parameters of a benzene ring utilizing localized resonance profiles.",
+                        "What is cracking? Explain the industrial significance of cracking long-chain petroleum streams into gasoline.",
+                        "Define standard solution, primary standard substance, and secondary standard substance parameters.",
+                        "Explain the principles behind neutralization titrations using phenolphthalein indicators."
+                    ][i],
+                })),
+                "biology": Array.from({ length: 50 }, (_, i) => ({
+                    meta: i % 3 === 0 ? "Long Question | 8 Marks" : i % 3 === 1 ? "Short Question | 4 Marks" : "Conceptual | 2 Marks",
+                    text: [
+                        "Describe the structural components of a typical plant cell with a fully labeled vector tracking diagram.",
+                        "Explain the complex mechanism of Meiosis-I prophase stages with chronological step annotations.",
+                        "Why are Bryophytes precisely designated as the amphibians of the plant kingdom plantae?",
+                        "Describe the fluid mosaic model of the plasma membrane with a detailed architectural diagram.",
+                        "Differentiate between mitosis and meiosis division sequences based on genetic conservation parameters.",
+                        "Explain the structural morphology and lifecycle reproduction stages of Chlamydomonas.",
+                        "Describe the structure and economic importance of Spirogyra including its conjugation mechanisms.",
+                        "Describe the vegetative structure and sexual reproduction stages seen in Marchantia.",
+                        "Explain the alteration of generations configuration using the life cycle matrix of a typical fern.",
+                        "Describe the anatomical structure of a typical dicot stem with a transverse section illustration.",
+                        "Differentiate between the anatomical features of a monocot root and a dicot root system.",
+                        "Explain the mechanism of water absorption in plants via active and passive transport paths.",
+                        "What is transpiration? Explain the stomatal opening and closing mechanism using the potassium ion pump theory.",
+                        "Describe the mineral nutrition requirements in plants, detailing the symptoms of nitrogen and phosphorus deficiencies.",
+                        "Explain the light reaction phase of photosynthesis, detailing cyclic and non-cyclic photophosphorylation.",
+                        "Describe the biochemical steps of glycolysis occurring within the respiratory cytoplasm.",
+                        "Explain the Krebs cycle pathway showing all intermediate acid structures and ATP generation nodes.",
+                        "Define plant growth regulators. Discuss the physiological roles of Auxins and Gibberellins.",
+                        "What is photoperiodism? Classify plants based on their flowering responses to photoperiod triggers.",
+                        "Describe the structure of a typical bacteriophage along with its lytic lifecycle sequence.",
+                        "Explain the structural morphology and mode of nutrition observed within standard Mucor fungi.",
+                        "Discuss the economic importance of bacteria in agriculture, medicine, and industrial processing.",
+                        "Describe the structural features of a typical cyanobacteria and its role in nitrogen fixation.",
+                        "Explain the general characteristics and classification rules governing the Lichen symbiotic network.",
+                        "Describe the structural anatomy of an standard angiospermic flower with diagram components.",
+                        "Explain the process of microsporogenesis leading to the creation of pollen grains within anthers.",
+                        "Describe the different types of ovules found across standard angiosperm families.",
+                        "Explain the modes of pollination in plants, comparing anemophily and entomophily vectors.",
+                        "Describe the structure and structural classification of secondary plant tissues.",
+                        "Explain the scope and applications of biotechnology across modern agricultural systems.",
+                        "Describe the five-kingdom classification system proposed by Whittaker along with its baseline merits.",
+                        "Explain the structural characteristics and evolutionary value of the archegoniate plant series.",
+                        "Describe the ecosystem structure of a freshwater pond, detailing biotic and abiotic drivers.",
+                        "Explain the concept of food chains and food webs within a localized terrestrial grassland biotope.",
+                        "What are ecological pyramids? Explain why the pyramid of energy always maintains an upright profile.",
+                        "Describe the carbon cycle path and explain how human activities disrupt its global balance.",
+                        "Discuss the adaptation metrics of hydrophytic plants to survive inside watery environments.",
+                        "Explain the morphological and anatomical adaptations observed across standard xerophytic flora.",
+                        "What is biodiversity? Discuss the primary drivers causing biodiversity depletion globally.",
+                        "Describe the conservation strategies used to protect endangered flora via in-situ methods.",
+                        "Explain the cell wall organization detailing primary, secondary, and middle lamella matrices.",
+                        "Describe the structural anatomy and functional dynamics of the mitochondria organelle.",
+                        "Explain the structure and function of ribosomes in handling intracellular translation events.",
+                        "What is endoplasmic reticulum? Distinguish between rough and smooth variations.",
+                        "Describe the structural morphology of the Golgi apparatus and its role in cellular packaging.",
+                        "Explain the chemical composition and structural organization of eukaryotic chromosomes.",
+                        "What is cross-over? Discuss its mechanical significance in generating genetic variability.",
+                        "Describe the structure of a dicotyledonous seed along with its germination sequence.",
+                        "Explain the principles of tissue culture techniques and their modern applications.",
+                        "Discuss the environmental impacts of deforestation on local water table baselines."
+                    ][i],
+                }))
+            },
+            "12": {
+                "physics": Array.from({ length: 50 }, (_, i) => ({
+                    meta: i % 3 === 0 ? "Long Question | 8 Marks" : i % 3 === 1 ? "Short Question | 4 Marks" : "Conceptual | 2 Marks",
+                    text: [
+                        "State Huygens' Principle. Use it to prove the laws of reflection or refraction of light at a plane boundary surface.",
+                        "What is Biot-Savart Law? Apply it to deduce an expression for magnetic field intensity at the center of a circular current-carrying coil.",
+                        "Why does a metal grid box provide an absolute electrostatic shielding cover protection from lightning discharges?",
+                        "State Coulomb's Law in electrostatics. Derive an expression for the electric field intensity due to a point charge.",
+                        "Define electric potential. Derive an expression for the electric potential at a point due to an isolated electric dipole.",
+                        "State Gauss's theorem. Apply it to find the electric field intensity near a charged infinitely long straight conductor.",
+                        "Define capacitance. Derive an expression for the capacitance of a parallel plate capacitor filled with a dielectric slab.",
+                        "State Kirchhoff's laws for an electrical network. Apply them to balance a Wheatstone bridge circuit.",
+                        "What is the principle of a potentiometer? Explain how it can be used to compare the EMFs of two cells.",
+                        "State Joule's laws of heating. Derive an expression for the electrical power dissipated inside a resistor.",
+                        "What is Seebeck effect? Explain the variation of thermo-EMF with temperature using a characteristic curve plot.",
+                        "State Ampere's circuital law. Apply it to find the magnetic field inside a long current-carrying solenoid.",
+                        "Derive an expression for the force experienced by a straight current-carrying conductor placed inside a uniform magnetic field.",
+                        "Explain the theory and working of a moving coil galvanometer. Define its current sensitivity parameter.",
+                        "What is Faraday's law of electromagnetic induction? State Lenz's law and show that it confirms the conservation of energy.",
+                        "Define self-induction and mutual induction. Derive an expression for the self-inductance of a long solenoid.",
+                        "Explain the theory of an AC circuit containing an inductor, a capacitor, and a resistor connected in a series configuration.",
+                        "What is electrical resonance in an LCR series circuit? Derive the mathematical expression for the resonant frequency.",
+                        "Describe the construction and operating principle of a step-up transformer, noting its structural power loss sources.",
+                        "State the laws of refraction. Derive the lens maker's formula for a thin convex glass lens.",
+                        "What is chromatic aberration in lenses? Explain how an achromatic combination of two thin lenses is constructed.",
+                        "Describe the construction and tracking adjustments of an astronomical telescope. Derive its magnifying power formula.",
+                        "Explain the phenomenon of interference of light. Derive the expression for fringe width in Young's double-slit setup.",
+                        "What is diffraction of light? Compare the intensity distribution profile of interference fringes with diffraction bands.",
+                        "Explain the phenomenon of polarization of light. State Brewster's law and show that reflected and refracted rays are perpendicular.",
+                        "Describe Millikan's oil drop experiment to determine the fundamental electronic charge value.",
+                        "What is specific charge? Describe Thomson's method to calculate the e/m ratio of an electron beam.",
+                        "State the postulates of Einstein's photoelectric equation. Explain the concepts of threshold frequency and stopping potential.",
+                        "State Bohr's postulates for the hydrogen atom. Derive an expression for the total energy of an electron in the nth orbit.",
+                        "Explain the continuous and characteristic X-ray spectrum profiles. State Moseley's law and write its physical importance.",
+                        "State the laws of radioactive disintegration. Derive the relationship linking radioactive half-life and decay constants.",
+                        "What is nuclear fission and nuclear fusion? Explain the energy release using the binding energy per nucleon curve.",
+                        "Explain the working of a full-wave rectifier circuit utilizing junction diodes with input/output waveform tracking graphs.",
+                        "Describe the input and output characteristics of a PNP or NPN transistor operating in a common emitter layout.",
+                        "What are logic gates? Construct the truth table and logic symbol configurations for OR, AND, and NOT architectures.",
+                        "Explain the principles of digital communication. Distinguish between amplitude modulation and frequency modulation loops.",
+                        "What is the de Broglie hypothesis? Calculate the de Broglie wavelength associated with an electron accelerated through a voltage V.",
+                        "Explain the working principle of a Ruby laser or He-Ne laser system, outlining population inversion requirements.",
+                        "What is superconductivity? Discuss the Meissner effect and list industrial applications for superconducting materials.",
+                        "Explain the concept of wave-particle duality. Describe the experimental verification managed by Davisson and Germer.",
+                        "Define work function. Why do different metals exhibit distinct threshold frequencies under light illumination?",
+                        "Explain the velocity selector principle for moving charges crossing perpendicular electric and magnetic fields.",
+                        "What is a cyclotron? Explain its working limitations regarding the acceleration of lighter electron profiles.",
+                        "Derive the expression for torque acting on a current-carrying loop suspended inside a uniform magnetic field.",
+                        "Define magnetic susceptibility and permeability. Distinguish between paramagnetic and ferromagnetic substances.",
+                        "What is eddy current? Discuss its unwanted damping effects and show how it is minimized in transformer cores.",
+                        "Explain the significance of displacement current introduced by Maxwell to complete Ampere's law.",
+                        "What is critical angle? Explain the application of total internal reflection inside fiber optic communication lines.",
+                        "Explain the working of a compound microscope under normal adjustment conditions with a ray diagram.",
+                        "Discuss the Rayleigh criterion for the resolving power of optical instruments."
+                    ][i],
+                })),
+                "chemistry": Array.from({ length: 50 }, (_, i) => ({
+                    meta: i % 3 === 0 ? "Long Question | 8 Marks" : i % 3 === 1 ? "Short Question | 4 Marks" : "Conceptual | 2 Marks",
+                    text: [
+                        "Describe the industrial extraction of pure Copper from copper pyrites ore involving roasting and half-cell processes.",
+                        "Define standard electrode potential. How can you calculate the EMF of a dynamic Voltaic Cell system?",
+                        "Explain why Transition Metal elements exhibit highly distinct catalytic properties and variable oxidation status structures.",
+                        "State Faraday's laws of electrolysis. Calculate the mass of Copper deposited by passing a 2A current for 50 minutes.",
+                        "What is specific conductance and equivalent conductance? Explain their variations under progressive dilution shifts.",
+                        "State the characteristics of a first-order reaction. Derive the integrated rate equation and half-life expression.",
+                        "Explain the collision theory of reaction rates. How does temperature alter reaction rate based on activation energy?",
+                        "Describe the extraction of Iron from blast furnace operations, noting all temperature-dependent reduction reactions.",
+                        "Describe the industrial manufacture of Nitric Acid via Ostwald's process with structural reaction steps.",
+                        "Describe the manufacture of Sulphuric Acid by the Contact Process, detailing optimum yield requirements.",
+                        "Explain the laboratory preparation method for Chlorine gas along with its bleaching action mechanisms.",
+                        "Discuss the chemistry of Group 17 elements, comparing the oxidizing power sequence of Fluorine vs Iodine.",
+                        "Describe the preparation, properties, and structural formulas for potassium permanganate and potassium dichromate.",
+                        "What is coordination number? Explain the hybridization and geometry of coordination complexes using Valence Bond Theory.",
+                        "Explain the laboratory preparation for Chloroform from ethanol, outlining its purification phase.",
+                        "Discuss the nucleophilic substitution reactions (SN1 and SN2 pathways) seen inside haloalkanes.",
+                        "Explain the laboratory preparation of Nitrobenzene and discuss its reduction behaviors across distinct pH environments.",
+                        "Describe the manufacture of synthetic Ethanol via fermentation of molasses substrates.",
+                        "Distinguish between primary, secondary, and tertiary alcohols using the Victor Meyer color tracking test.",
+                        "Explain the laboratory preparation of Phenol from aniline. Why does phenol behave as a weak acid system?",
+                        "Describe the laboratory preparation for Benzaldehyde and discuss its classic Aldol condensation path.",
+                        "Explain the mechanism of Cannizzaro's reaction using formaldehydes lacking alpha-hydrogen profiles.",
+                        "Describe the preparation of Carboxylic Acids using Grignard reagents and discuss their esterification yields.",
+                        "State the differences between aliphatic amines and aromatic amines in terms of basic strength rankings.",
+                        "What is a carbohydrate? Classify them into mono-, oligo-, and polysaccharides with structural examples.",
+                        "Define peptide linkage. Explain the primary and secondary structural architectures seen inside protein configurations.",
+                        "What are nucleic acids? Distinguish structurally between DNA and RNA nucleotide structures.",
+                        "Explain the manufacture of Soap via saponification loops. What is the difference between soaps and synthetic detergents?",
+                        "What are polymers? Distinguish clearly between addition polymers and condensation polymers using Nylon-6,6.",
+                        "Explain the principles of green chemistry and its importance in reducing chemical industrial environmental footprint.",
+                        "Define order and molecularity of a chemical reaction. Highlight major points of divergence.",
+                        "Explain the mechanism of rust formation on iron surfaces using electrochemical corrosion equations.",
+                        "What is an alloy? Discuss the compositions and modern applications of brass, bronze, and stainless steel products.",
+                        "Describe the structural features of the extraction of Zinc from zinc blende ores.",
+                        "Explain the laboratory preparation of Phosphine gas, noting its spontaneous flammability triggers.",
+                        "What are interhalogen compounds? Explain why they exhibit higher reactivity than pure halogens.",
+                        "Explain the structures and oxidation states of oxyacids of phosphorus.",
+                        "What is Hoffmann's bromamide reaction? Show how it shortens carbon chains in amine synthesis paths.",
+                        "Explain the Williamson synthesis method to prepare symmetrical and asymmetrical ethers.",
+                        "Discuss the Reimer-Tiemann reaction for converting phenol into salicylaldehyde.",
+                        "Explain the Rosenmund reduction path used to isolate aldehydes from acyl chlorides.",
+                        "What is the Clemmensen reduction? Show how carbonyl functional groups switch into alkanes.",
+                        "Explain the test used to differentiate between aldehydes and ketones using Tollen's reagent.",
+                        "What is the Iodoform test? Which structural configurations yield a positive yellow precipitate?",
+                        "Describe the properties and preparation of Diazonium Salts along with their synthetic coupling transformations.",
+                        "What are essential and non-essential amino acids? Give two examples for each group.",
+                        "Explain denaturation of proteins. What structural levels are destroyed during this thermal event?",
+                        "What are vulcanized rubbers? How does sulphur cross-linking alter structural elasticity parameters?",
+                        "Describe the composition and manufacturing process for Portland cement variants.",
+                        "Explain the principles of paper chromatography and its analytical role in checking amino mixtures."
+                    ][i],
+                })),
+                "biology": Array.from({ length: 50 }, (_, i) => ({
+                    meta: i % 3 === 0 ? "Long Question | 8 Marks" : i % 3 === 1 ? "Short Question | 4 Marks" : "Conceptual | 2 Marks",
+                    text: [
+                        "Explain the mechanism of double fertilization and triple fusion inside the angiosperm embryo sac systems.",
+                        "Differentiate clearly between DNA replication properties and RNA transcription pathways within eukaryotic cells.",
+                        "How do genetic recombinations appearing during cross-over events serve evolutionary transformation cycles?",
+                        "State Mendel's Law of Segregation and Law of Independent Assortment with comprehensive genetic cross diagrams.",
+                        "Explain incomplete dominance and co-dominance using inheritance patterns in Mirabilis jalapa and blood systems.",
+                        "What is sex-linked inheritance? Explain the transmission pattern of hemophilia or color blindness across generations.",
+                        "Describe the classic experiment managed by Hershey and Chase proving DNA functions as the core genetic material.",
+                        "Explain the mechanism of protein synthesis, detailing translation initiation, elongation, and termination phases.",
+                        "What is operon concept? Describe the transcriptional control mechanism inside the Lac Operon system.",
+                        "Explain the theory of organic evolution proposed by Lamarck and discuss its modern scientific criticisms.",
+                        "Describe Darwin's theory of natural selection and explain the modern synthetic theory of evolution.",
+                        "Explain the evolutionary history of Man, focusing on the changes across Australopithecus, Homo erectus, and Neanderthals.",
+                        "Describe the anatomy and physiology of the human digestive system with an absolute ingestion flow layout.",
+                        "Explain the mechanism of breathing and trace the exchange of oxygen and carbon dioxide within human alveoli.",
+                        "Describe the structure of the human heart and explain the complete cardiac cycle sequence.",
+                        "Explain the mechanism of urine formation in the human kidney, detailing ultrafiltration and selective reabsorption.",
+                        "Describe the structural anatomy of a human neuron and explain the propagation of a nerve impulse action potential.",
+                        "Describe the structure and functional hormone products of the human anterior and posterior pituitary gland.",
+                        "Explain the female menstrual cycle, tracking ovarian and uterine changes regulated by pituitary hormones.",
+                        "Describe the gametogenesis sequence, comparing spermatogenesis with oogenesis phases.",
+                        "Describe the embryonic development of a frog up to the formation of a three-layered gastrula stage.",
+                        "Discuss the human population growth curve, analyzing factors driving population explosions.",
+                        "Describe the causative agent, symptoms, transmission paths, and prevention protocols for Malaria.",
+                        "Explain the lifecycle, pathogenicity, and control measures associated with Wuchereria bancrofti.",
+                        "Describe the immune system components, distinguishing between innate and acquired immunity behaviors.",
+                        "What is AIDS? Explain the replication cycle of HIV inside helper T-cells.",
+                        "Discuss the applications of genetic engineering in producing recombinant insulin and vaccines.",
+                        "What is a transgenic organism? Discuss the ethical implications and advantages of genetically modified crops.",
+                        "Describe the structural layout and production methodology for biogas using domestic organic waste feeds.",
+                        "Explain the steps involved in DNA fingerprinting and highlight its primary forensic validation roles.",
+                        "Describe the structure of an antibody molecule with a labeled structural chain diagram.",
+                        "Explain the process of tissue transplantation and discuss the mechanisms of graft rejection.",
+                        "What is cancer? Differentiate clearly between benign and malignant tumor progressions.",
+                        "Discuss the clinical symptoms and management options available for drug and alcohol addiction syndromes.",
+                        "Describe the environmental consequences of chemical pesticide misuse across agricultural lands.",
+                        "Explain the structural parameters of the human skeleton, comparing axial and appendicular elements.",
+                        "Describe the mechanism of muscle contraction according to the sliding filament hypothesis.",
+                        "Explain the physiology of vision, tracking light focus through photoreceptor activations.",
+                        "Describe the structure and balancing functions managed by the human internal ear.",
+                        "What is feedback inhibition? Explain how thyroid hormone levels regulate TSH outputs.",
+                        "Describe the structural organization of human blood components, detailing cellular lifespans.",
+                        "Explain the ABO blood grouping system and the clinical risks of Rh factor incompatibility during pregnancy.",
+                        "What is lymph? Discuss the structural role of the lymphatic network in clearing interstitial fluids.",
+                        "Describe the histology of human liver tissue and summarize its regulatory metabolic functions.",
+                        "Explain the physiological causes and health impacts of hypertension and atherosclerosis.",
+                        "Describe the architectural organization of the human respiratory membrane interface.",
+                        "What is dialysis? Explain the working architecture of an artificial kidney machine setup.",
+                        "Describe the structure of human spermatozoa with functional component annotations.",
+                        "Explain the process of amniocentesis and discuss why its unregulated tracking usage is banned.",
+                        "Discuss the scope of gene therapy in handling hereditary physiological defects."
+                    ][i],
+                }))
+            }
+        };
+
+        /* --- THEME CONTROLLER MODULE --- */
+        const themeButton = document.getElementById('theme-switcher');
+        const themeIcon = themeButton.querySelector('i');
+        const themeText = document.getElementById('theme-text');
+        const htmlRoot = document.documentElement;
+
+        themeButton.addEventListener('click', () => {
+            const systemState = htmlRoot.getAttribute('data-theme');
+            if (systemState === 'dark') {
+                htmlRoot.setAttribute('data-theme', 'light');
+                themeIcon.className = 'fa-solid fa-sun';
+                themeText.textContent = 'Light Mode';
+            } else {
+                htmlRoot.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fa-solid fa-moon';
+                themeText.textContent = 'Dark Mode';
+            }
+            themeButton.blur();
+        });
+
+        /* --- IMMERSIVE MOUSE GLOW TRACKER ENGINE --- */
+        let ticking = false;
+        document.querySelectorAll('.element-interact-node').forEach(card => {
+            const tracker = card.querySelector('.card-glow-tracker');
+            if (!tracker) return;
+
+            card.addEventListener('mousemove', (event) => {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        const coordinates = card.getBoundingClientRect();
+                        const mouseX = event.clientX - coordinates.left;
+                        const mouseY = event.clientY - coordinates.top;
+                        
+                        tracker.style.setProperty('--mouse-x', `${mouseX}px`);
+                        tracker.style.setProperty('--mouse-y', `${mouseY}px`);
+                        tracker.style.opacity = '1';
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            }, { passive: true });
+
+            card.addEventListener('mouseleave', () => {
+                tracker.style.opacity = '0';
+            });
+        });
+
+        /* --- RANDOMIZED 3-QUESTION SELECTION ENGINE --- */
+        const generateBtn = document.getElementById('trigger-engine-btn');
+        const gradeSelect = document.getElementById('grade-select');
+        const subjectSelect = document.getElementById('subject-select');
+        const outputStage = document.getElementById('output-stage');
+        const outputTitle = document.getElementById('output-title');
+        const renderDeck = document.getElementById('question-render-deck');
+        const progressLine = document.getElementById('scroll-progress-line');
+
+        generateBtn.addEventListener('click', () => {
+            // Update button label to reflect regeneration capability
+            generateBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Regenerate Random Set';
+            
+            // Trigger Top Loading Bar Animation Sequence
+            progressLine.style.width = '30%';
+            
+            setTimeout(() => {
+                progressLine.style.width = '70%';
+            }, 150);
+
+            setTimeout(() => {
+                progressLine.style.width = '100%';
+                
+                const selectedGrade = gradeSelect.value;
+                const selectedSubject = subjectSelect.value;
+                
+                // Clear out existing cards from deck
+                renderDeck.innerHTML = '';
+                
+                // Fetch targeted context node array (Full 50 elements pool)
+                const allQuestions = NEB_QUESTION_BANK[selectedGrade][selectedSubject];
+                
+                // Select 3 random unique questions from the bank
+                const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+                const selectedQuestions = shuffled.slice(0, 3);
+                
+                // Update header values 
+                outputTitle.textContent = `NEB Grade ${selectedGrade} • ${selectedSubject.toUpperCase()} Random Set`;
+
+                // Loop through randomized subset and render cards
+                selectedQuestions.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'question-card';
+                    card.innerHTML = `
+                        <div class="question-meta">${item.meta}</div>
+                        <div class="question-text">${item.text}</div>
+                    `;
+                    renderDeck.appendChild(card);
+                });
+
+                // Display hidden area with spring animation wrapper
+                outputStage.classList.add('reveal');
+                
+                // Smooth slide view adjustment focus
+                outputStage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                // Reset Loading Bar
+                setTimeout(() => { progressLine.style.width = '0%'; }, 400);
+
+            }, 400);
+        });
+    </script>
 </body>
 </html>
